@@ -15,7 +15,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3000');
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+    const newSocket = io(BACKEND_URL);
 
     newSocket.on('connect', () => {
       console.log('Connected to server');

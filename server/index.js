@@ -3,17 +3,32 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
+
+// Allow requests from frontend origin
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     methods: ["GET", "POST"]
   }
+});
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5173"
+}));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
 });
 
 // Store active rooms
@@ -30,9 +45,7 @@ io.on('connection', (socket) => {
     }
     rooms.get(roomId).add(userId);
 
-    // Notify others in the room
     socket.to(roomId).emit('user-connected', userId);
-    
     console.log(`User ${userId} joined room ${roomId}`);
   });
 
@@ -50,7 +63,6 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    // Clean up rooms
     rooms.forEach((users, roomId) => {
       if (users.has(socket.id)) {
         users.delete(socket.id);
